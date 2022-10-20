@@ -2,6 +2,7 @@ package gash.grpc.route.services;
 
 import gash.grpc.route.client.RouteClient;
 import com.google.protobuf.ByteString;
+import gash.grpc.route.heartbeat.service.HeartBeatService;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import route.Route;
@@ -10,10 +11,19 @@ import gash.grpc.route.server.RouteServerImpl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.Properties;
 
 public class ServiceA extends RouteServerImpl {
     private static final long serverId = 1;
+    private final HeartBeatService heartBeatService;
+
+    public ServiceA() {
+        heartBeatService = new HeartBeatService(
+                new InetSocketAddress(Long.toString(RouteServer.getInstance().getServerID())
+                        ,RouteServer.getInstance().getServerPort()));
+    };
+
 
     // server a
     // private queue que obkjectname
@@ -26,6 +36,8 @@ public class ServiceA extends RouteServerImpl {
             Properties conf = getConfiguration(new File(path));
             RouteServer.configure(conf);
             ServiceA service = new ServiceA();
+            System.out.println("serverid"+RouteServer.getInstance().getServerID()+"port"+
+                    RouteServer.getInstance().getServerPort());
             service.start();
             service.blockUntilShutdown();
         } catch (IOException var4) {
@@ -55,7 +67,30 @@ public class ServiceA extends RouteServerImpl {
             routeMessageToDestinationServer(origin, path, content + "forwarded from Server A");
         }
     }
-
+    private void startHeartBeatProcess(){
+    HeartBeatService initialNode = this.heartBeatService;
+//        initialNode.setOnNewNodeHandler((inetSocketAddress) -> {
+//            System.out.println("Connected to " +
+//                    inetSocketAddress.getHostName() + ":"
+//                    + inetSocketAddress.getPort());
+//        });
+//
+//        initialNode.setOnFailedNodeHandler((inetSocketAddress) -> {
+//            System.out.println("Node " + inetSocketAddress.getHostName() + ":"
+//                    + inetSocketAddress.getPort() + " failed");
+//        });
+//
+//        initialNode.setOnRemoveNodeHandler((inetSocketAddress) -> {
+//            System.out.println("Node " + inetSocketAddress.getHostName() + ":"
+//                    + inetSocketAddress.getPort() + " removed");
+//        });
+//
+//        initialNode.setOnRevivedNodeHandler((inetSocketAddress) -> {
+//            System.out.println("Node " + inetSocketAddress.getHostName() + ":"
+//                    + inetSocketAddress.getPort() + " revived");
+//        });
+    initialNode.start();
+    }
     private void routeMessageToDestinationServer(long origin, String path, String content) {
         int routePort = ServiceRouting.route(path);
         RouteClient routeClient = new RouteClient(serverId, routePort);
@@ -82,6 +117,7 @@ public class ServiceA extends RouteServerImpl {
         System.out.println("-- starting server");
         this.svr.start();
         Runtime.getRuntime().addShutdownHook(new Thread(ServiceA.this::stop));
+        this.startHeartBeatProcess();
     }
 
 }

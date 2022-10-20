@@ -2,6 +2,7 @@ package gash.grpc.route.services;
 
 import gash.grpc.route.client.RouteClient;
 import com.google.protobuf.ByteString;
+import gash.grpc.route.heartbeat.service.HeartBeatService;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import route.Route;
@@ -10,10 +11,21 @@ import gash.grpc.route.server.RouteServerImpl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.Properties;
 
 public class ServiceB extends RouteServerImpl {
     // server B
+    private final HeartBeatService heartBeatService;
+
+    public ServiceB() {
+        heartBeatService = new HeartBeatService(
+                new InetSocketAddress(Long.toString(RouteServer.getInstance().getServerID())
+                        ,RouteServer.getInstance().getServerPort()));;
+    }
+    private void startHeartBeatProcess(){
+        this.heartBeatService.start();
+    }
     public static void main(String[] args) throws Exception {
         String path = args[0];
 
@@ -21,6 +33,8 @@ public class ServiceB extends RouteServerImpl {
             Properties conf = getConfiguration(new File(path));
             RouteServer.configure(conf);
             ServiceB service = new ServiceB();
+            System.out.println("serverid"+RouteServer.getInstance().getServerID()+"port"+
+                    RouteServer.getInstance().getServerPort());
             service.start();
             service.blockUntilShutdown();
         } catch (IOException var4) {
@@ -57,6 +71,7 @@ public class ServiceB extends RouteServerImpl {
         System.out.println("-- starting server");
         this.svr.start();
         Runtime.getRuntime().addShutdownHook(new Thread(ServiceB.this::stop));
+        this.startHeartBeatProcess();
     }
 
 }
