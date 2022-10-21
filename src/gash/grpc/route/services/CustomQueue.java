@@ -60,14 +60,17 @@ public class CustomQueue extends RouteServerImpl {
 
         @Override
         public void run() {
+            System.out.println("inside run method for consume messages");
+            System.out.println("initial value for is running is " + _isRunning);
             while (_isRunning) {
                 try {
                     if(messageList.size()>0 && this.listOfServerIds.size()>0) {
                         int destinationServerPort = (int) ((Math.random() * (listOfServerIds.size() - 0)) + 0);
                         Route msg = messageList.take();
 
+
                         RouteClient routeClient = new RouteClient(serverId, destinationServerPort);
-                        routeClient.sendMessage(1, "/serverB", "Message is sent via customQueue");
+                        routeClient.sendMessage(1, "/serverB", "Message is sent via customQueue.conf");
 
                     }
                 } catch (Exception e) {
@@ -110,7 +113,7 @@ public class CustomQueue extends RouteServerImpl {
         String content = new String(request.getPayload().toByteArray());
         String path = request.getPath();
         long origin = request.getOrigin();
-
+//send ack to client
         builder.setPayload(this.process(request));
         Route rtn = builder.build();
         //Adding message to Custom Queue here
@@ -118,7 +121,7 @@ public class CustomQueue extends RouteServerImpl {
 
         responseObserver.onNext(rtn);
         responseObserver.onCompleted();
-
+//send ack to client
         if (content.equals("route")) {
             routeMessageToDestinationServer(origin, path, content + "forwarded from Server A");
         }
@@ -146,7 +149,7 @@ public class CustomQueue extends RouteServerImpl {
 
     @Override
     public void start() throws Exception {
-        this.svr = ServerBuilder.forPort(RouteServer.getInstance().getServerPort()).addService(new ServiceA()).build();
+        this.svr = ServerBuilder.forPort(RouteServer.getInstance().getServerPort()).addService(new CustomQueue()).build();
         System.out.println("-- starting server-----");
         System.out.println("Listening to the port  " + RouteServer.getInstance().getServerPort());
         //todo : add thread heartbeat
@@ -156,6 +159,7 @@ public class CustomQueue extends RouteServerImpl {
         this.svr.start();
         //todo : add thread for take
         ConsumeMessages con = new ConsumeMessages(this.messageList, this.listOfServerIds);
+
         con.start();
         Runtime.getRuntime().addShutdownHook(new Thread(CustomQueue.this::stop));
     }
