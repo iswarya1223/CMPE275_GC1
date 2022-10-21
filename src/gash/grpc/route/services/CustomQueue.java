@@ -16,18 +16,29 @@ import java.util.Properties;
 import java.util.concurrent.LinkedBlockingDeque;
 
 public class CustomQueue extends RouteServerImpl {
+
+    static class Control {
+        public volatile  LinkedBlockingDeque<Route> messageList;
+        public volatile  List<Integer> listOfServerIds;
+
+        public Control() {
+            this.messageList = new LinkedBlockingDeque<>();
+            this.listOfServerIds = new ArrayList<>();
+            this.listOfServerIds.add(2346);
+            this.listOfServerIds.add(2347);
+        }
+    }
+
+    static final Control control = new Control();
+
     private static final long serverId = 1;
-    private LinkedBlockingDeque<Route> messageList;
-    private List<Integer> listOfServerIds;
+
 
     public CustomQueue() {
-        this.messageList = new LinkedBlockingDeque<>();
-        this.listOfServerIds = new ArrayList<>();
-        this.listOfServerIds.add(2246);
     }
     public boolean putMessage(Route route){
         try{
-            this.messageList.add(route);
+            control.messageList.add(route);
             return true;
         }catch (Exception e){
             return false;
@@ -37,7 +48,7 @@ public class CustomQueue extends RouteServerImpl {
 
     public Route takeMessage(){
         try {
-            return this.messageList.take();
+            return control.messageList.take();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -45,13 +56,9 @@ public class CustomQueue extends RouteServerImpl {
     public static final class ConsumeMessages extends Thread {
 
         public boolean _isRunning = true;
-        public LinkedBlockingDeque<Route> messageList;
 
-        public List<Integer> listOfServerIds;
+        public ConsumeMessages() {
 
-        public ConsumeMessages(LinkedBlockingDeque<Route> messageList, List<Integer> listOfServerIds) {
-            this.messageList = messageList;
-            this.listOfServerIds = listOfServerIds;
         }
 
         public void shutdown() {
@@ -64,14 +71,17 @@ public class CustomQueue extends RouteServerImpl {
             System.out.println("initial value for is running is " + _isRunning);
             while (_isRunning) {
                 try {
-                    if(messageList.size()>0 && this.listOfServerIds.size()>0) {
-                        int destinationServerPort = (int) ((Math.random() * (listOfServerIds.size() - 0)) + 0);
-                        Route msg = messageList.take();
+                    if(control.messageList.size()>0 && control.listOfServerIds.size()>0) {
+                        System.out.println("inside consume message if condition");
+                        int destinationServerPort =control.listOfServerIds.get((int) ((Math.random() * (control.listOfServerIds.size() - 0)) + 0)) ;
+                        Route msg = control.messageList.take();
 
 
                         RouteClient routeClient = new RouteClient(serverId, destinationServerPort);
                         routeClient.sendMessage(1, "/serverB", "Message is sent via customQueue.conf");
 
+                    }else{
+                        Thread.sleep(2000);
                     }
                 } catch (Exception e) {
                     // ignore - part of the test
@@ -143,7 +153,7 @@ public class CustomQueue extends RouteServerImpl {
         String content = new String(msg.getPayload().toByteArray());
         System.out.println("-- got: From" + msg.getOrigin() + ", path: " + msg.getPath() + ", with: " + content);
 
-        byte[] raw = "Hi I am Service A".getBytes();
+        byte[] raw = "Hi I am Custom Queue".getBytes();
         return ByteString.copyFrom(raw);
     }
 
@@ -158,7 +168,7 @@ public class CustomQueue extends RouteServerImpl {
         //todo : add thread for monitor it will check queue status in 20 sec
         this.svr.start();
         //todo : add thread for take
-        ConsumeMessages con = new ConsumeMessages(this.messageList, this.listOfServerIds);
+        ConsumeMessages con = new ConsumeMessages();
 
         con.start();
         Runtime.getRuntime().addShutdownHook(new Thread(CustomQueue.this::stop));
