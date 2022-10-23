@@ -2,11 +2,14 @@ package gash.grpc.route.client;
 
 import com.google.protobuf.ByteString;
 
+
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import route.Route;
 import route.RouteServiceGrpc;
 import route.RouteServiceGrpc.RouteServiceBlockingStub;
+
+
 
 /**
  * copyright 2021, gash
@@ -24,11 +27,12 @@ import route.RouteServiceGrpc.RouteServiceBlockingStub;
  * the License.
  */
 
-public class RouteClient {
+public class RouteClient  {
     ManagedChannel ch;
     RouteServiceBlockingStub stub;
     private long clientID;
     private int port;
+
 
     // private queue que obkjectname
     // this queue=queue
@@ -89,8 +93,9 @@ public class RouteClient {
         shutdown();
     }
 
-    public static void main(String[] args) {
-        RouteClient routeClient = new RouteClient(1314, 2345);
-        routeClient.sendMessage(1, "/serverA", "route");
-    }
+//    public static void main(String[] args) {
+//        RouteClient routeClient = new RouteClient(1314, 2344);
+//         routeClient.sendMessage(1, "/serverA", "route");
+//    }
+
 }

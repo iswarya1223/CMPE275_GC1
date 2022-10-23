@@ -29,6 +29,21 @@ public class ServiceC extends RouteServerImpl {
 
     }
 
+    private void startHeartBeatProcess(){
+        new Thread(()->{
+            while(true) {
+                RouteClient routeClient = new RouteClient(1315, 2346);
+                routeClient.sendMessage(RouteServer.getInstance().getServerPort(), "/serverB12", "HB");
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }).start();
+
+    }
+
     @Override
     public void request(Route request, StreamObserver<Route> responseObserver) {
         Route.Builder builder = Route.newBuilder();
@@ -57,6 +72,7 @@ public class ServiceC extends RouteServerImpl {
         System.out.println("-- starting server");
         this.svr.start();
         Runtime.getRuntime().addShutdownHook(new Thread(ServiceC.this::stop));
+        this.startHeartBeatProcess();
     }
 
 }
