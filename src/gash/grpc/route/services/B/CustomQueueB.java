@@ -172,10 +172,6 @@ public class CustomQueueB extends RouteServerImpl {
         {
             control.nodes.put(port, LocalDateTime.now());
         }
-        for (Map.Entry<String, LocalDateTime> entry : control.nodes.entrySet()) {
-            String key = entry.getKey().toString();
-            LocalDateTime value = entry.getValue();
-        }
     }
     private void detectFailedNodes(){
         String[] keys = new String[control.nodes.size()];
@@ -188,10 +184,6 @@ public class CustomQueueB extends RouteServerImpl {
                 }
             }
         }
-        for (Map.Entry<String, LocalDateTime> entry : control.nodes.entrySet()) {
-            String key = entry.getKey();
-            LocalDateTime value = entry.getValue();
-        }
     }
     private boolean checkIfFailed(String key) {
         LocalDateTime lastUpdateTime = control.nodes.get(key);
@@ -202,7 +194,6 @@ public class CustomQueueB extends RouteServerImpl {
     }
     private void startFailureDetectionThread(){
         new Thread(()->{
-//            System.out.println("failure thread");
             while(true) {
                 detectFailedNodes();
                 try {

@@ -7,8 +7,6 @@ import io.grpc.ManagedChannelBuilder;
 import route.Route;
 import route.RouteServiceGrpc;
 import route.RouteServiceGrpc.RouteServiceBlockingStub;
-
-import java.rmi.UnexpectedException;
 import java.text.SimpleDateFormat;
 import java.util.concurrent.TimeUnit;
 
@@ -84,7 +82,6 @@ public class RouteClient {
 
     public Route request(Route msg) {
         Route res = stub.request(msg);
-//        System.out.println("here at routeclien 87");
         shutdown();
         return res;
     }
@@ -108,10 +105,8 @@ public class RouteClient {
 
     public static void main(String[] args) {
         new Thread(()->{while(true) {
-            System.out.println("101");
             RouteClient routeClient = new RouteClient(1314, 2000);
             Route reply =  routeClient.sendMessage(1, "/customQueue", "HB", 2000);
-            System.out.println("hi");
             var replyPayload = new String(reply.getPayload().toByteArray());
             System.out.println("reply: " + reply.getId() + ", from: " + reply.getOrigin() + ", payload: " + replyPayload);
         }}).start();

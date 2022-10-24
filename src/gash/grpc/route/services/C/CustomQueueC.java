@@ -172,10 +172,6 @@ public class CustomQueueC extends RouteServerImpl {
         {
             control.nodes.put(port, LocalDateTime.now());
         }
-        for (Map.Entry<String, LocalDateTime> entry : control.nodes.entrySet()) {
-            String key = entry.getKey().toString();
-            LocalDateTime value = entry.getValue();
-        }
     }
     private void detectFailedNodes(){
         String[] keys = new String[control.nodes.size()];
@@ -187,10 +183,6 @@ public class CustomQueueC extends RouteServerImpl {
                     control.nodes.remove(key);
                 }
             }
-        }
-        for (Map.Entry<String, LocalDateTime> entry : control.nodes.entrySet()) {
-            String key = entry.getKey();
-            LocalDateTime value = entry.getValue();
         }
     }
     private boolean checkIfFailed(String key) {

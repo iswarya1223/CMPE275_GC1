@@ -34,7 +34,7 @@ public class ServiceB1 extends RouteServerImpl {
         builder.setDestination(request.getOrigin());
         builder.setPath(request.getPath());
         builder.setPayload(this.process(request));
-        byte[] raw = "Request processed by  processed by Server B1 of CustomQueue B".getBytes();
+        byte[] raw = "Request processed by Server B1 of CustomQueue B".getBytes();
         builder.setProcessedBy(ByteString.copyFrom(raw));
         builder.setIsFromClient(false);
         builder.setLbPortNo(request.getLbPortNo());
@@ -53,7 +53,7 @@ public class ServiceB1 extends RouteServerImpl {
     protected ByteString process(Route msg) {
         String content = new String(msg.getPayload().toByteArray());
         System.out.println("-- got message from: " + msg.getOrigin() + ", with : " + content);
-        byte[] raw = "Request processed by  processed by Server B1 of CustomQueue B".getBytes();
+        byte[] raw = "Request processed by Server B1 of CustomQueue B".getBytes();
         return ByteString.copyFrom(raw);
     }
 
