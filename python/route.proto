@@ -1,5 +1,6 @@
 syntax = "proto3";
-
+option java_multiple_files = true;
+option optimize_for = SPEED;
 package route;
 
 // a service interface (contract)
@@ -10,6 +11,7 @@ service RouteService {
 
 // basic message correspondence between two points. Additional metadata 
 // and routing options can be added.
+import "google/protobuf/timestamp.proto";
 
 message Route {
   int64 id = 1;
@@ -17,4 +19,16 @@ message Route {
   int64 destination = 3;
   string path = 4;
   bytes payload = 5;
+  int64 clientId = 6;
+  int64 clientPort = 7;
+  bytes processedBy = 8;
+  int64 clientMessageId = 9;
+  bytes serverOutput = 10;
+  string clientStartTime = 11;
+  string inboundQueueEntryTime = 12;
+  string inboundQueueExitTime = 13;
+  string outboundQueueEntryTime = 14;
+  string outboundQueueExitTime = 15;
+  bool isFromClient = 16;
+  int64 lbPortNo = 17;
 }
