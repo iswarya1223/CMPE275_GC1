@@ -19,7 +19,11 @@ public class AClient extends RouteServerImpl {
 
         //todo : Available load balancers reading from a file (loadbalancers currently hardcoded)
         List<Integer> availableLoadBalancers=new ArrayList<>();
+
+        //Adding Load Balancers A, B & C
         availableLoadBalancers.add(2000);
+        availableLoadBalancers.add(3000);
+        availableLoadBalancers.add(4000);
 
         try {
             Properties conf = getConfiguration(new File(path));

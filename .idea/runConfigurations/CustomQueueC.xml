@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="CustomQueueC" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="gash.grpc.route.services.C.CustomQueueC" />
+    <module name="grpc-route" />
+    <option name="PROGRAM_PARAMETERS" value="conf/customQueueC.conf" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="gash.grpc.route.services.A.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ServiceA3" type="Application" factoryName="Application" nameIsGenerated="true">
+    <option name="MAIN_CLASS_NAME" value="gash.grpc.route.services.A.ServiceA3" />
+    <module name="grpc-route" />
+    <option name="PROGRAM_PARAMETERS" value="conf/serverA3.conf" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="gash.grpc.route.services.A.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
