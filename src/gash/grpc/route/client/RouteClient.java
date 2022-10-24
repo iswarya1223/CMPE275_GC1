@@ -97,10 +97,13 @@ public class RouteClient {
     }
 
     public static void main(String[] args) {
-
-        RouteClient routeClient = new RouteClient(1314, 2344);
-        Route reply = routeClient.sendMessage(1, "/customQueue", "route", 2344);
-        var replyPayload = new String(reply.getPayload().toByteArray());
-        System.out.println("reply: " + reply.getId() + ", from: " + reply.getOrigin() + ", payload: " + replyPayload);
+        new Thread(()->{while(true) {
+            System.out.println("101");
+            RouteClient routeClient = new RouteClient(1314, 2000);
+            Route reply =  routeClient.sendMessage(1, "/customQueue", "HB", 2000);
+            System.out.println("hi");
+            var replyPayload = new String(reply.getPayload().toByteArray());
+            System.out.println("reply: " + reply.getId() + ", from: " + reply.getOrigin() + ", payload: " + replyPayload);
+        }}).start();
     }
 }

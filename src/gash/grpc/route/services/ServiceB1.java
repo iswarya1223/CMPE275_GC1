@@ -1,24 +1,24 @@
 package gash.grpc.route.services;
 
-import gash.grpc.route.client.RouteClient;
 import com.google.protobuf.ByteString;
+import gash.grpc.route.client.RouteClient;
+import gash.grpc.route.server.RouteServer;
+import gash.grpc.route.server.RouteServerImpl;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import route.Route;
-import gash.grpc.route.server.RouteServer;
-import gash.grpc.route.server.RouteServerImpl;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
-public class ServiceB extends RouteServerImpl {
+public class ServiceB1 extends RouteServerImpl {
     public static void main(String[] args) throws Exception {
         String path = args[0];
         try {
             Properties conf = getConfiguration(new File(path));
             RouteServer.configure(conf);
-            ServiceB service = new ServiceB();
+            ServiceB1 service = new ServiceB1();
             service.start();
             service.blockUntilShutdown();
         } catch (IOException var4) {
@@ -79,12 +79,12 @@ public class ServiceB extends RouteServerImpl {
 
     @Override
     public void start() throws Exception {
-        this.svr = ServerBuilder.forPort(RouteServer.getInstance().getServerPort()).addService(new ServiceB()).build();
+        this.svr = ServerBuilder.forPort(RouteServer.getInstance().getServerPort()).addService(new ServiceB1()).build();
         System.out.println("-- starting server -----");
         System.out.println("Listening to the port  " + RouteServer.getInstance().getServerPort());
         this.startHeartBeatProcess();
         this.svr.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(ServiceB.this::stop));
+        Runtime.getRuntime().addShutdownHook(new Thread(ServiceB1.this::stop));
     }
 
 }

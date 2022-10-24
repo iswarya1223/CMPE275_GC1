@@ -10,80 +10,85 @@ import route.Route;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.Duration;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.LinkedBlockingDeque;
 
 public class CustomQueue extends RouteServerImpl {
-
     static class Control {
         public volatile  LinkedBlockingDeque<Route> inBoundQueue;
         public volatile LinkedBlockingDeque<Route> outBoundQueue;
         public volatile  List<Integer> listOfServerIds;
+        public volatile List<String> usedServers=new ArrayList<>();
 
+        public volatile ConcurrentHashMap<String, LocalDateTime> nodes;
         public Control() {
             this.inBoundQueue = new LinkedBlockingDeque<>();
             this.outBoundQueue = new LinkedBlockingDeque<>();
             this.listOfServerIds = new ArrayList<>();
-            this.listOfServerIds.add(2346);
-            //this.listOfServerIds.add(2347);
+            this.nodes = new ConcurrentHashMap<>();
+            this.listOfServerIds.add(2001);
         }
     }
-
     static final Control control = new Control();
-
     private static final long serverId = 1;
-
-
     public CustomQueue() {
     }
-    public boolean putMessage(Route route){
-        try{
-            control.inBoundQueue.add(route);
-            return true;
-        }catch (Exception e){
-            return false;
-        }
 
-    }
-
-    public Route takeMessage(){
+    public static void main(String[] args) throws Exception {
+        String path = args[0];
         try {
-            return control.inBoundQueue.take();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            Properties conf = getConfiguration(new File(path));
+            RouteServer.configure(conf);
+            CustomQueue customQueue = new CustomQueue();
+            System.out.println("serverid"+RouteServer.getInstance().getServerID()+"port"+
+                    RouteServer.getInstance().getServerPort());
+            customQueue.start();
+            customQueue.blockUntilShutdown();
+        } catch (IOException var4) {
+            var4.printStackTrace();
         }
     }
+
     public static final class ConsumeMessages extends Thread {
-
         public boolean _isRunning = true;
-
         public ConsumeMessages() {}
-
         public void shutdown() {
             _isRunning = false;
         }
-
         @Override
         public void run() {
-            System.out.println("inside run method for consume messages");
-            System.out.println("initial value for is running is " + _isRunning);
             while (_isRunning) {
                 try {
-                    if(control.inBoundQueue.size()>0 && control.listOfServerIds.size()>0) {
-                        System.out.println("inside consume message if condition");
-                        int destinationServerPort = control.listOfServerIds.get((int) ((Math.random() * (control.listOfServerIds.size() - 0)) + 0)) ;
+                    if(control.inBoundQueue.size()>0 && control.nodes.size()>0) {
+                        int destinationServerPort=0;
+                        while(destinationServerPort==0) {
+                            for (String key : control.nodes.keySet()) {
+                                if (!control.usedServers.contains(key)) {
+                                    destinationServerPort = Integer.parseInt(key);
+                                    control.usedServers.add((key));
+                                    break;
+                                }
+                            }
+                            if (destinationServerPort==0)
+                            {
+                                control.usedServers.clear();
+                            }
+                        }
+                        System.out.println(destinationServerPort);
                         Route msg = control.inBoundQueue.take();
                         Route.Builder builder = Route.newBuilder(msg);
                         builder.setInboundQueueExitTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
                         Route modifiedMsg = builder.build();
-
                         RouteClient routeClient = new RouteClient(serverId, destinationServerPort);
                         Route r = routeClient.request(modifiedMsg);
-
-
                     }else{
                         Thread.sleep(2000);
                     }
@@ -95,34 +100,23 @@ public class CustomQueue extends RouteServerImpl {
     }
 
     public static final class ConsumeOutBoundMessages extends Thread {
-
         public boolean _isRunning = true;
-
         public ConsumeOutBoundMessages() {}
-
         public void shutdown() {
             _isRunning = false;
         }
-
         @Override
         public void run() {
-            System.out.println("inside run method for ConsumeOutBoundMessages ");
-            System.out.println("initial value for ConsumeOutBoundMessages is running is " + _isRunning);
             while (_isRunning) {
                 try {
                     if(control.outBoundQueue.size()>0 ) {
-                        System.out.println("inside ConsumeOutBoundMessages if condition");
-                        int destinationServerPort = control.listOfServerIds.get((int) ((Math.random() * (control.listOfServerIds.size() - 0)) + 0)) ;
                         Route msg = control.outBoundQueue.take();
                         Route.Builder builder = Route.newBuilder(msg);
                         builder.setOutboundQueueExitTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
                         Route modifiedMsg = builder.build();
-
                         RouteClient routeClient = new RouteClient(serverId, (int) msg.getClientPort());
                         Route r = routeClient.request(modifiedMsg);
                         r.getClientPort();
-
-
                     }else{
                         Thread.sleep(2000);
                     }
@@ -132,33 +126,9 @@ public class CustomQueue extends RouteServerImpl {
             }
         }
     }
-
-
-
-    // server a
-    // private queue que obkjectname
-    // this queue=queue
-    // queue
-    public static void main(String[] args) throws Exception {
-        String path = args[0];
-
-        try {
-            Properties conf = getConfiguration(new File(path));
-            RouteServer.configure(conf);
-            CustomQueue customQueue = new CustomQueue();
-            customQueue.start();
-            customQueue.blockUntilShutdown();
-        } catch (IOException var4) {
-            var4.printStackTrace();
-        }
-
-    }
-
     @Override
     public void request(Route request, StreamObserver<Route> responseObserver) {
 
-        //Write code here for put method
-        //taking the input and creating a route object and storing it in the queue
         Route.Builder builder = Route.newBuilder();
         builder.setId(request.getId());
         builder.setOrigin(RouteServer.getInstance().getServerID());
@@ -170,54 +140,88 @@ public class CustomQueue extends RouteServerImpl {
         builder.setIsFromClient(request.getIsFromClient());
 
         String content = new String(request.getPayload().toByteArray());
+
         String path = request.getPath();
         long origin = request.getOrigin();
-//here make sure the process request is handled by server not by load balancer
         builder.setPayload(this.process(request));
         Route rtn = null;
-        //Adding message to Custom Queue here
-        if(request.getIsFromClient()){
+        if (content.equals("HB")) {
+            processHeartBeat(Long.toString(request.getId()));
+            responseObserver.onNext(rtn);
+            responseObserver.onCompleted();
+        }
+        else if(request.getIsFromClient()){
             builder.setInboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
             rtn = builder.build();
             control.inBoundQueue.add(rtn);
             responseObserver.onNext(rtn);
             responseObserver.onCompleted();
-        }else {
+        }
+        else {
             builder.setOutboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
-
             rtn = builder.build();
             control.outBoundQueue.add(rtn);
             responseObserver.onNext(rtn);
             responseObserver.onCompleted();
         }
-        //putMessage(rtn);
-
-//        responseObserver.onNext(rtn);
-//        responseObserver.onCompleted();
-//send ack to client
-//        if (content.equals("route")) {
-//            Route r = routeMessageToDestinationServer(origin, path, content + "forwarded from Server A");
-//        }
     }
-
-    private Route routeMessageToDestinationServer(long origin, String path, String content) {
-        int routePort = ServiceRouting.route(path);
-        RouteClient routeClient = new RouteClient(serverId, routePort);
-        Route responseObj = routeClient.sendMessage(1, "/serverB", content, 2344);
-        return responseObj;
+    private void processHeartBeat(String port) {
+        Boolean existingMember = control.nodes.containsKey(port);
+        if (!existingMember) {
+            control.nodes.putIfAbsent(port, LocalDateTime.now());
+        }
+        else
+        {
+            control.nodes.put(port, LocalDateTime.now());
+        }
+        for (Map.Entry<String, LocalDateTime> entry : control.nodes.entrySet()) {
+            String key = entry.getKey().toString();
+            LocalDateTime value = entry.getValue();
+        }
     }
-
-    private void sendServiceB_Ack() {
-        RouteClient routeClient = new RouteClient(1315, 2346);
-        routeClient.sendMessage(1, "/serverB", "message from server A " + routeClient.getClientID(), 2344);
+    private void detectFailedNodes(){
+        String[] keys = new String[control.nodes.size()];
+        control.nodes.keySet().toArray(keys);
+        for (String key : keys) {
+            boolean hadFailed = checkIfFailed(key);
+            if (hadFailed) {
+                synchronized (control.nodes) {
+                    control.nodes.remove(key);
+                }
+            }
+        }
+        for (Map.Entry<String, LocalDateTime> entry : control.nodes.entrySet()) {
+            String key = entry.getKey();
+            LocalDateTime value = entry.getValue();
+        }
     }
-
+    private boolean checkIfFailed(String key) {
+        LocalDateTime lastUpdateTime = control.nodes.get(key);
+        LocalDateTime failureTime = lastUpdateTime.plus(Duration.ofSeconds(3));
+        LocalDateTime now = LocalDateTime.now();
+        Boolean failed = now.isAfter(failureTime);
+        return failed;
+    }
+    private void startFailureDetectionThread(){
+        new Thread(()->{
+            System.out.println("failure thread");
+            while(true) {
+                detectFailedNodes();
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        ).start();
+    }
     @Override
     protected ByteString process(Route msg) {
         String content = new String(msg.getPayload().toByteArray());
-        System.out.println("-- got: From" + msg.getOrigin() + ", path: " + msg.getPath() + ", with: " + content);
+        System.out.println("-- got from: " + msg.getOrigin() + ", with: " + content);
 
-        byte[] raw = "Hi I am Custom Queue".getBytes();
+        byte[] raw = "Custom Queue 1 forwarded message".getBytes();
         return ByteString.copyFrom(raw);
     }
 
@@ -227,15 +231,12 @@ public class CustomQueue extends RouteServerImpl {
         System.out.println("-- starting server-----");
         System.out.println("Listening to the port  " + RouteServer.getInstance().getServerPort());
         //todo : add thread heartbeat
-
-
+        startFailureDetectionThread();
         //todo : add thread for monitor it will check queue status in 20 sec
         this.svr.start();
         //todo : add thread for take
         ConsumeMessages con = new ConsumeMessages();
-
         con.start();
-
         ConsumeOutBoundMessages outBoundMessagesThread = new ConsumeOutBoundMessages();
 
         outBoundMessagesThread.start();
