@@ -8,8 +8,7 @@ import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import route.Route;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,20 +20,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
 
+import static java.lang.Runtime.getRuntime;
+
 public class CustomQueue extends RouteServerImpl {
     static class Control {
         public volatile  LinkedBlockingDeque<Route> inBoundQueue;
         public volatile LinkedBlockingDeque<Route> outBoundQueue;
-        public volatile  List<Integer> listOfServerIds;
         public volatile List<String> usedServers=new ArrayList<>();
 
         public volatile ConcurrentHashMap<String, LocalDateTime> nodes;
         public Control() {
             this.inBoundQueue = new LinkedBlockingDeque<>();
             this.outBoundQueue = new LinkedBlockingDeque<>();
-            this.listOfServerIds = new ArrayList<>();
             this.nodes = new ConcurrentHashMap<>();
-            this.listOfServerIds.add(2001);
         }
     }
     static final Control control = new Control();
@@ -151,18 +149,19 @@ public class CustomQueue extends RouteServerImpl {
             responseObserver.onCompleted();
         }
         else if(request.getIsFromClient()){
-            builder.setInboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
-            rtn = builder.build();
-            control.inBoundQueue.add(rtn);
-            responseObserver.onNext(rtn);
-            responseObserver.onCompleted();
+                builder.setInboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                rtn = builder.build();
+                control.inBoundQueue.add(rtn);
+                responseObserver.onNext(rtn);
+                responseObserver.onCompleted();
+
         }
         else {
-            builder.setOutboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
-            rtn = builder.build();
-            control.outBoundQueue.add(rtn);
-            responseObserver.onNext(rtn);
-            responseObserver.onCompleted();
+                builder.setOutboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                rtn = builder.build();
+                control.outBoundQueue.add(rtn);
+                responseObserver.onNext(rtn);
+                responseObserver.onCompleted();
         }
     }
     private void processHeartBeat(String port) {
@@ -225,6 +224,24 @@ public class CustomQueue extends RouteServerImpl {
         return ByteString.copyFrom(raw);
     }
 
+
+    private static void printLines(String cmd, InputStream ins) throws Exception {
+        String line = null;
+        BufferedReader in = new BufferedReader(
+                new InputStreamReader(ins));
+        while ((line = in.readLine()) != null) {
+            System.out.println(cmd + " " + line);
+        }
+    }
+
+    private static void runProcess(String command) throws Exception {
+        Process pro = getRuntime().exec(command);
+        printLines(command + " stdout:", pro.getInputStream());
+        printLines(command + " stderr:", pro.getErrorStream());
+        pro.waitFor();
+        System.out.println(command + " exitValue() " + pro.exitValue());
+    }
+
     @Override
     public void start() throws Exception {
         this.svr = ServerBuilder.forPort(RouteServer.getInstance().getServerPort()).addService(new CustomQueue()).build();
@@ -238,8 +255,7 @@ public class CustomQueue extends RouteServerImpl {
         ConsumeMessages con = new ConsumeMessages();
         con.start();
         ConsumeOutBoundMessages outBoundMessagesThread = new ConsumeOutBoundMessages();
-
         outBoundMessagesThread.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(CustomQueue.this::stop));
+        getRuntime().addShutdownHook(new Thread(CustomQueue.this::stop));
     }
 }

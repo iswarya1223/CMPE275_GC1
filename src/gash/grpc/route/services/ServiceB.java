@@ -42,7 +42,9 @@ public class ServiceB extends RouteServerImpl {
         builder.setClientPort(request.getClientPort());
         Route rtn = builder.build();
         RouteClient routeClient = new RouteClient( RouteServer.getInstance().getServerID(), (int) rtn.getLbPortNo());
-        Route r = routeClient.request(rtn);
+
+            Route r = routeClient.request(rtn);
+
         responseObserver.onNext(rtn);
         responseObserver.onCompleted();
     }
@@ -64,10 +66,18 @@ public class ServiceB extends RouteServerImpl {
             builder.setPayload(ByteString.copyFrom(raw));
             Route rtn = builder.build();
             while(true) {
-                RouteClient routeClient = new RouteClient(2001, 2000);
-                Route r = routeClient.request(rtn);
-
-                //routeClient.sendMessage(RouteServer.getInstance().getServerPort(), "/customQueue", "HB",2000);
+                try {
+                    RouteClient routeClient = new RouteClient(2001, 2000);
+                    Route r = routeClient.request(rtn);
+                }catch(RuntimeException e){
+                    System.out.println("HeartBeatServer Not Available. Will try again in 3 seconds");
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e1) {
+                        throw new RuntimeException(e1);
+                    }
+                    continue;
+                }
                 try {
                     Thread.sleep(3000);
                 } catch (InterruptedException e) {

@@ -8,7 +8,9 @@ import route.Route;
 import route.RouteServiceGrpc;
 import route.RouteServiceGrpc.RouteServiceBlockingStub;
 
+import java.rmi.UnexpectedException;
 import java.text.SimpleDateFormat;
+import java.util.concurrent.TimeUnit;
 
 /**
  * copyright 2021, gash
@@ -38,8 +40,8 @@ public class RouteClient {
     public RouteClient(long clientId, int port) {
         this.clientID = clientId;
         this.port = port;
-        this.ch = ManagedChannelBuilder.forAddress("localhost", port).usePlaintext().build();
-        this.stub = RouteServiceGrpc.newBlockingStub(ch);
+            this.ch = ManagedChannelBuilder.forAddress("localhost", port).usePlaintext().build();
+            this.stub = RouteServiceGrpc.newBlockingStub(ch);
     }
 
     public long getClientID() {
@@ -81,11 +83,19 @@ public class RouteClient {
     }
 
     public Route request(Route msg) {
-        return stub.request(msg);
+        Route res = stub.request(msg);
+//        System.out.println("here at routeclien 87");
+        shutdown();
+        return res;
     }
 
     private void shutdown() {
         ch.shutdown();
+        try {
+            ch.awaitTermination(1, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Route sendMessage(int mId, String path, String message, int portNo) {

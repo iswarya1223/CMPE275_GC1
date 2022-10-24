@@ -26,15 +26,15 @@ public class AClient extends RouteServerImpl {
             RouteServer.configure(conf);
             AClient service = new AClient();
             service.start();
-            for(int i=0;i<1000;i++)
+            for(int i=0;i<5;i++)
             {
                 for(int lbPortNo:availableLoadBalancers)
                 {
-                    RouteClient routeClient = new RouteClient(1025, lbPortNo);
-                    Route msg = getRoute(lbPortNo,"This is a message from Client A",conf);
-                    Route reply = routeClient.request(msg);
-                    var replyPayload = new String(reply.getPayload().toByteArray());
-                    System.out.println("reply: " + reply.getId() + ", from: " + reply.getOrigin() + ", payload: " + replyPayload);
+                                RouteClient routeClient = new RouteClient(1025, lbPortNo);
+                                Route msg = getRoute(lbPortNo,"from Client A",conf);
+                                Route reply = routeClient.request(msg);
+                                var replyPayload = new String(reply.getPayload().toByteArray());
+                                System.out.println("reply: " + reply.getId() + ", from: " + reply.getOrigin() + ", payload: " + replyPayload);
                 }
             }
             service.blockUntilShutdown();

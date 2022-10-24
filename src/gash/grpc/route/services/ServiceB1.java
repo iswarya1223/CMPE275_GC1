@@ -10,6 +10,7 @@ import route.Route;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.Properties;
 
 public class ServiceB1 extends RouteServerImpl {
@@ -23,6 +24,35 @@ public class ServiceB1 extends RouteServerImpl {
             service.blockUntilShutdown();
         } catch (IOException var4) {
             var4.printStackTrace();
+        }
+    }
+
+    private static void run() {
+
+        Route.Builder builder = Route.newBuilder();
+        builder.setId(RouteServer.getInstance().getServerPort());
+        byte[] raw = "HB".getBytes();
+        builder.setPayload(ByteString.copyFrom(raw));
+        Route rtn = builder.build();
+        while (true) {
+try {
+    RouteClient routeClient = new RouteClient(2001, 2000);
+    Route r = routeClient.request(rtn);
+}catch(RuntimeException e){
+    System.out.println("HeartBeatServer Not Available. Will try again in 3 seconds");
+    try {
+        Thread.sleep(3000);
+    } catch (InterruptedException e1) {
+        throw new RuntimeException(e1);
+    }
+    continue;
+}
+
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -42,7 +72,7 @@ public class ServiceB1 extends RouteServerImpl {
         builder.setClientPort(request.getClientPort());
         Route rtn = builder.build();
         RouteClient routeClient = new RouteClient( RouteServer.getInstance().getServerID(), (int) rtn.getLbPortNo());
-        Route r = routeClient.request(rtn);
+            Route r = routeClient.request(rtn);
         responseObserver.onNext(rtn);
         responseObserver.onCompleted();
     }
@@ -56,25 +86,7 @@ public class ServiceB1 extends RouteServerImpl {
     }
 
     private void startHeartBeatProcess(){
-        new Thread(()->{
-
-            Route.Builder builder = Route.newBuilder();
-            builder.setId(RouteServer.getInstance().getServerPort());
-            byte[] raw = "HB".getBytes();
-            builder.setPayload(ByteString.copyFrom(raw));
-            Route rtn = builder.build();
-            while(true) {
-                RouteClient routeClient = new RouteClient(2001, 2000);
-                Route r = routeClient.request(rtn);
-
-                //routeClient.sendMessage(RouteServer.getInstance().getServerPort(), "/customQueue", "HB",2000);
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }).start();
+        new Thread(ServiceB1::run).start();
     }
 
     @Override
