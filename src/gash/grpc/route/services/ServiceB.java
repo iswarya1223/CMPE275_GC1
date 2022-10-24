@@ -37,7 +37,17 @@ public class ServiceB extends RouteServerImpl {
         builder.setDestination(request.getOrigin());
         builder.setPath(request.getPath());
         builder.setPayload(this.process(request));
+        byte[] raw = "is processed by Sevice B".getBytes();
+        builder.setProcessedBy(ByteString.copyFrom(raw));
+        builder.setIsFromClient(false);
+        builder.setLbPortNo(request.getLbPortNo());
+        builder.setClientStartTime(request.getClientStartTime());
+        builder.setClientPort(request.getClientPort());
+        //builder.setIsFromClient(request.getIsFromClient());
         Route rtn = builder.build();
+        RouteClient routeClient = new RouteClient( RouteServer.getInstance().getServerID(), (int) rtn.getLbPortNo());
+        Route r = routeClient.request(rtn);
+
         responseObserver.onNext(rtn);
         responseObserver.onCompleted();
     }
@@ -54,7 +64,8 @@ public class ServiceB extends RouteServerImpl {
     @Override
     public void start() throws Exception {
         this.svr = ServerBuilder.forPort(RouteServer.getInstance().getServerPort()).addService(new ServiceB()).build();
-        System.out.println("-- starting server");
+        System.out.println("-- starting server -----");
+        System.out.println("Listening to the port  " + RouteServer.getInstance().getServerPort());
         this.svr.start();
         Runtime.getRuntime().addShutdownHook(new Thread(ServiceB.this::stop));
     }

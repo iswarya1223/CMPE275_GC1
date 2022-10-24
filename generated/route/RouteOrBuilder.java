@@ -36,4 +36,89 @@ public interface RouteOrBuilder extends
    * <code>bytes payload = 5;</code>
    */
   com.google.protobuf.ByteString getPayload();
+
+  /**
+   * <code>int64 clientId = 6;</code>
+   */
+  long getClientId();
+
+  /**
+   * <code>int64 clientPort = 7;</code>
+   */
+  long getClientPort();
+
+  /**
+   * <code>bytes processedBy = 8;</code>
+   */
+  com.google.protobuf.ByteString getProcessedBy();
+
+  /**
+   * <code>int64 clientMessageId = 9;</code>
+   */
+  long getClientMessageId();
+
+  /**
+   * <code>bytes serverOutput = 10;</code>
+   */
+  com.google.protobuf.ByteString getServerOutput();
+
+  /**
+   * <code>string clientStartTime = 11;</code>
+   */
+  java.lang.String getClientStartTime();
+  /**
+   * <code>string clientStartTime = 11;</code>
+   */
+  com.google.protobuf.ByteString
+      getClientStartTimeBytes();
+
+  /**
+   * <code>string inboundQueueEntryTime = 12;</code>
+   */
+  java.lang.String getInboundQueueEntryTime();
+  /**
+   * <code>string inboundQueueEntryTime = 12;</code>
+   */
+  com.google.protobuf.ByteString
+      getInboundQueueEntryTimeBytes();
+
+  /**
+   * <code>string inboundQueueExitTime = 13;</code>
+   */
+  java.lang.String getInboundQueueExitTime();
+  /**
+   * <code>string inboundQueueExitTime = 13;</code>
+   */
+  com.google.protobuf.ByteString
+      getInboundQueueExitTimeBytes();
+
+  /**
+   * <code>string outboundQueueEntryTime = 14;</code>
+   */
+  java.lang.String getOutboundQueueEntryTime();
+  /**
+   * <code>string outboundQueueEntryTime = 14;</code>
+   */
+  com.google.protobuf.ByteString
+      getOutboundQueueEntryTimeBytes();
+
+  /**
+   * <code>string outboundQueueExitTime = 15;</code>
+   */
+  java.lang.String getOutboundQueueExitTime();
+  /**
+   * <code>string outboundQueueExitTime = 15;</code>
+   */
+  com.google.protobuf.ByteString
+      getOutboundQueueExitTimeBytes();
+
+  /**
+   * <code>bool isFromClient = 16;</code>
+   */
+  boolean getIsFromClient();
+
+  /**
+   * <code>int64 lbPortNo = 17;</code>
+   */
+  long getLbPortNo();
 }

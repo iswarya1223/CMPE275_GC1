@@ -8,6 +8,8 @@ import route.Route;
 import route.RouteServiceGrpc;
 import route.RouteServiceGrpc.RouteServiceBlockingStub;
 
+import java.text.SimpleDateFormat;
+
 /**
  * copyright 2021, gash
  *
@@ -56,11 +58,15 @@ public class RouteClient {
         this.port = port;
     }
 
-    private Route constructMessage(int mID, String path, String payload) {
+    private Route constructMessage(int mID, String path, String payload, int portNo) {
         Route.Builder bld = Route.newBuilder();
         bld.setId(mID);
         bld.setOrigin(clientID);
         bld.setPath(path);
+        bld.setClientPort(this.port);
+        bld.setClientStartTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+        bld.setIsFromClient(true);
+        bld.setLbPortNo(portNo);
 
         byte[] hello = payload.getBytes();
         bld.setPayload(ByteString.copyFrom(hello));
@@ -74,7 +80,7 @@ public class RouteClient {
         System.out.println("reply: " + reply.getId() + ", from: " + reply.getOrigin() + ", payload: " + payload);
     }
 
-    private Route request(Route msg) {
+    public Route request(Route msg) {
         return stub.request(msg);
     }
 
@@ -82,15 +88,19 @@ public class RouteClient {
         ch.shutdown();
     }
 
-    public void sendMessage(int mId, String path, String message) {
-        Route msg = constructMessage(mId, path, message);
-        Route r = request(msg);
-        response(r);
-        shutdown();
+    public Route sendMessage(int mId, String path, String message, int portNo) {
+        Route msg = constructMessage(mId, path, message, portNo);
+        Route responseObj = request(msg);
+        //response(responseObj);
+        //shutdown();
+        return responseObj;
     }
 
     public static void main(String[] args) {
-        RouteClient routeClient = new RouteClient(1314, 2345);
-        routeClient.sendMessage(1, "/serverA", "route");
+
+        RouteClient routeClient = new RouteClient(1314, 2344);
+        Route reply = routeClient.sendMessage(1, "/customQueue", "route", 2344);
+        var replyPayload = new String(reply.getPayload().toByteArray());
+        System.out.println("reply: " + reply.getId() + ", from: " + reply.getOrigin() + ", payload: " + replyPayload);
     }
 }

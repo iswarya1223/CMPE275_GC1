@@ -10,6 +10,7 @@ import route.Route;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -18,14 +19,16 @@ import java.util.concurrent.LinkedBlockingDeque;
 public class CustomQueue extends RouteServerImpl {
 
     static class Control {
-        public volatile  LinkedBlockingDeque<Route> messageList;
+        public volatile  LinkedBlockingDeque<Route> inBoundQueue;
+        public volatile LinkedBlockingDeque<Route> outBoundQueue;
         public volatile  List<Integer> listOfServerIds;
 
         public Control() {
-            this.messageList = new LinkedBlockingDeque<>();
+            this.inBoundQueue = new LinkedBlockingDeque<>();
+            this.outBoundQueue = new LinkedBlockingDeque<>();
             this.listOfServerIds = new ArrayList<>();
             this.listOfServerIds.add(2346);
-            this.listOfServerIds.add(2347);
+            //this.listOfServerIds.add(2347);
         }
     }
 
@@ -38,7 +41,7 @@ public class CustomQueue extends RouteServerImpl {
     }
     public boolean putMessage(Route route){
         try{
-            control.messageList.add(route);
+            control.inBoundQueue.add(route);
             return true;
         }catch (Exception e){
             return false;
@@ -48,7 +51,7 @@ public class CustomQueue extends RouteServerImpl {
 
     public Route takeMessage(){
         try {
-            return control.messageList.take();
+            return control.inBoundQueue.take();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -57,9 +60,7 @@ public class CustomQueue extends RouteServerImpl {
 
         public boolean _isRunning = true;
 
-        public ConsumeMessages() {
-
-        }
+        public ConsumeMessages() {}
 
         public void shutdown() {
             _isRunning = false;
@@ -71,14 +72,17 @@ public class CustomQueue extends RouteServerImpl {
             System.out.println("initial value for is running is " + _isRunning);
             while (_isRunning) {
                 try {
-                    if(control.messageList.size()>0 && control.listOfServerIds.size()>0) {
+                    if(control.inBoundQueue.size()>0 && control.listOfServerIds.size()>0) {
                         System.out.println("inside consume message if condition");
-                        int destinationServerPort =control.listOfServerIds.get((int) ((Math.random() * (control.listOfServerIds.size() - 0)) + 0)) ;
-                        Route msg = control.messageList.take();
-
+                        int destinationServerPort = control.listOfServerIds.get((int) ((Math.random() * (control.listOfServerIds.size() - 0)) + 0)) ;
+                        Route msg = control.inBoundQueue.take();
+                        Route.Builder builder = Route.newBuilder(msg);
+                        builder.setInboundQueueExitTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                        Route modifiedMsg = builder.build();
 
                         RouteClient routeClient = new RouteClient(serverId, destinationServerPort);
-                        routeClient.sendMessage(1, "/serverB", "Message is sent via customQueue.conf");
+                        Route r = routeClient.request(modifiedMsg);
+
 
                     }else{
                         Thread.sleep(2000);
@@ -89,6 +93,47 @@ public class CustomQueue extends RouteServerImpl {
             }
         }
     }
+
+    public static final class ConsumeOutBoundMessages extends Thread {
+
+        public boolean _isRunning = true;
+
+        public ConsumeOutBoundMessages() {}
+
+        public void shutdown() {
+            _isRunning = false;
+        }
+
+        @Override
+        public void run() {
+            System.out.println("inside run method for ConsumeOutBoundMessages ");
+            System.out.println("initial value for ConsumeOutBoundMessages is running is " + _isRunning);
+            while (_isRunning) {
+                try {
+                    if(control.outBoundQueue.size()>0 ) {
+                        System.out.println("inside ConsumeOutBoundMessages if condition");
+                        int destinationServerPort = control.listOfServerIds.get((int) ((Math.random() * (control.listOfServerIds.size() - 0)) + 0)) ;
+                        Route msg = control.outBoundQueue.take();
+                        Route.Builder builder = Route.newBuilder(msg);
+                        builder.setOutboundQueueExitTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                        Route modifiedMsg = builder.build();
+
+                        RouteClient routeClient = new RouteClient(serverId, (int) msg.getClientPort());
+                        Route r = routeClient.request(modifiedMsg);
+                        r.getClientPort();
+
+
+                    }else{
+                        Thread.sleep(2000);
+                    }
+                } catch (Exception e) {
+                    // ignore - part of the test
+                }
+            }
+        }
+    }
+
+
 
     // server a
     // private queue que obkjectname
@@ -119,33 +164,52 @@ public class CustomQueue extends RouteServerImpl {
         builder.setOrigin(RouteServer.getInstance().getServerID());
         builder.setDestination(request.getOrigin());
         builder.setPath(request.getPath());
+        builder.setLbPortNo(request.getLbPortNo());
+        builder.setClientStartTime(request.getClientStartTime());
+        builder.setClientPort(request.getClientPort());
+        builder.setIsFromClient(request.getIsFromClient());
 
         String content = new String(request.getPayload().toByteArray());
         String path = request.getPath();
         long origin = request.getOrigin();
-//send ack to client
+//here make sure the process request is handled by server not by load balancer
         builder.setPayload(this.process(request));
-        Route rtn = builder.build();
+        Route rtn = null;
         //Adding message to Custom Queue here
-        putMessage(rtn);
+        if(request.getIsFromClient()){
+            builder.setInboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+            rtn = builder.build();
+            control.inBoundQueue.add(rtn);
+            responseObserver.onNext(rtn);
+            responseObserver.onCompleted();
+        }else {
+            builder.setOutboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
 
-        responseObserver.onNext(rtn);
-        responseObserver.onCompleted();
-//send ack to client
-        if (content.equals("route")) {
-            routeMessageToDestinationServer(origin, path, content + "forwarded from Server A");
+            rtn = builder.build();
+            control.outBoundQueue.add(rtn);
+            responseObserver.onNext(rtn);
+            responseObserver.onCompleted();
         }
+        //putMessage(rtn);
+
+//        responseObserver.onNext(rtn);
+//        responseObserver.onCompleted();
+//send ack to client
+//        if (content.equals("route")) {
+//            Route r = routeMessageToDestinationServer(origin, path, content + "forwarded from Server A");
+//        }
     }
 
-    private void routeMessageToDestinationServer(long origin, String path, String content) {
+    private Route routeMessageToDestinationServer(long origin, String path, String content) {
         int routePort = ServiceRouting.route(path);
         RouteClient routeClient = new RouteClient(serverId, routePort);
-        routeClient.sendMessage(1, "/serverB", content);
+        Route responseObj = routeClient.sendMessage(1, "/serverB", content, 2344);
+        return responseObj;
     }
 
     private void sendServiceB_Ack() {
         RouteClient routeClient = new RouteClient(1315, 2346);
-        routeClient.sendMessage(1, "/serverB", "message from server A " + routeClient.getClientID());
+        routeClient.sendMessage(1, "/serverB", "message from server A " + routeClient.getClientID(), 2344);
     }
 
     @Override
@@ -171,6 +235,10 @@ public class CustomQueue extends RouteServerImpl {
         ConsumeMessages con = new ConsumeMessages();
 
         con.start();
+
+        ConsumeOutBoundMessages outBoundMessagesThread = new ConsumeOutBoundMessages();
+
+        outBoundMessagesThread.start();
         Runtime.getRuntime().addShutdownHook(new Thread(CustomQueue.this::stop));
     }
 }
