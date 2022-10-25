@@ -64,7 +64,7 @@ public class RouteClient {
         bld.setOrigin(clientID);
         bld.setPath(path);
         bld.setClientPort(this.port);
-        bld.setClientStartTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+        bld.setClientStartTime(String.valueOf(System.currentTimeMillis()));
         bld.setIsFromClient(true);
         bld.setLbPortNo(portNo);
 

@@ -41,9 +41,14 @@ public class ServiceA2 extends RouteServerImpl {
         builder.setClientStartTime(request.getClientStartTime());
         builder.setClientPort(request.getClientPort());
         Route rtn = builder.build();
+//        try {
+//            Thread.sleep(500);
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
         RouteClient routeClient = new RouteClient( RouteServer.getInstance().getServerID(), (int) rtn.getLbPortNo());
 
-            Route r = routeClient.request(rtn);
+        Route r = routeClient.request(rtn);
 
         responseObserver.onNext(rtn);
         responseObserver.onCompleted();

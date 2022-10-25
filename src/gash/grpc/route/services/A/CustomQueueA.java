@@ -82,12 +82,12 @@ public class CustomQueueA extends RouteServerImpl {
                         System.out.println(destinationServerPort);
                         Route msg = control.inBoundQueue.take();
                         Route.Builder builder = Route.newBuilder(msg);
-                        builder.setInboundQueueExitTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                        builder.setInboundQueueExitTime(String.valueOf(System.currentTimeMillis()));
                         Route modifiedMsg = builder.build();
                         RouteClient routeClient = new RouteClient(serverId, destinationServerPort);
                         Route r = routeClient.request(modifiedMsg);
                     }else{
-                        Thread.sleep(2000);
+                        //Thread.sleep(2000);
                     }
                 } catch (Exception e) {
                     // ignore - part of the test
@@ -109,13 +109,13 @@ public class CustomQueueA extends RouteServerImpl {
                     if(control.outBoundQueue.size()>0 ) {
                         Route msg = control.outBoundQueue.take();
                         Route.Builder builder = Route.newBuilder(msg);
-                        builder.setOutboundQueueExitTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                        builder.setOutboundQueueExitTime(String.valueOf(System.currentTimeMillis()));
                         Route modifiedMsg = builder.build();
                         RouteClient routeClient = new RouteClient(serverId, (int) msg.getClientPort());
                         Route r = routeClient.request(modifiedMsg);
                         r.getClientPort();
                     }else{
-                        Thread.sleep(2000);
+                        //Thread.sleep(2000);
                     }
                 } catch (Exception e) {
                     // ignore - part of the test
@@ -148,7 +148,7 @@ public class CustomQueueA extends RouteServerImpl {
             responseObserver.onCompleted();
         }
         else if(request.getIsFromClient()){
-                builder.setInboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                builder.setInboundQueueEntryTime(String.valueOf(System.currentTimeMillis()));
                 rtn = builder.build();
                 control.inBoundQueue.add(rtn);
                 responseObserver.onNext(rtn);
@@ -156,7 +156,7 @@ public class CustomQueueA extends RouteServerImpl {
 
         }
         else {
-                builder.setOutboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                builder.setOutboundQueueEntryTime(String.valueOf(System.currentTimeMillis()));
                 rtn = builder.build();
                 control.outBoundQueue.add(rtn);
                 responseObserver.onNext(rtn);
@@ -209,7 +209,7 @@ public class CustomQueueA extends RouteServerImpl {
     @Override
     protected ByteString process(Route msg) {
         String content = new String(msg.getPayload().toByteArray());
-        System.out.println("-- got from: " + msg.getOrigin() + ", with: " + content);
+        System.out.println("-- got from: " + msg.getId() + ", with: " + content);
 
         byte[] raw = "Custom Queue A forwarded message".getBytes();
         return ByteString.copyFrom(raw);

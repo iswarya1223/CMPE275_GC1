@@ -82,7 +82,7 @@ public class CustomQueueC extends RouteServerImpl {
                         System.out.println(destinationServerPort);
                         Route msg = control.inBoundQueue.take();
                         Route.Builder builder = Route.newBuilder(msg);
-                        builder.setInboundQueueExitTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                        builder.setInboundQueueExitTime(String.valueOf(System.currentTimeMillis()));
                         Route modifiedMsg = builder.build();
                         RouteClient routeClient = new RouteClient(serverId, destinationServerPort);
                         Route r = routeClient.request(modifiedMsg);
@@ -109,7 +109,7 @@ public class CustomQueueC extends RouteServerImpl {
                     if(control.outBoundQueue.size()>0 ) {
                         Route msg = control.outBoundQueue.take();
                         Route.Builder builder = Route.newBuilder(msg);
-                        builder.setOutboundQueueExitTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                        builder.setOutboundQueueExitTime(String.valueOf(System.currentTimeMillis()));
                         Route modifiedMsg = builder.build();
                         RouteClient routeClient = new RouteClient(serverId, (int) msg.getClientPort());
                         Route r = routeClient.request(modifiedMsg);
@@ -148,7 +148,7 @@ public class CustomQueueC extends RouteServerImpl {
             responseObserver.onCompleted();
         }
         else if(request.getIsFromClient()){
-                builder.setInboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                builder.setInboundQueueEntryTime(String.valueOf(System.currentTimeMillis()));
                 rtn = builder.build();
                 control.inBoundQueue.add(rtn);
                 responseObserver.onNext(rtn);
@@ -156,7 +156,7 @@ public class CustomQueueC extends RouteServerImpl {
 
         }
         else {
-                builder.setOutboundQueueEntryTime(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()));
+                builder.setOutboundQueueEntryTime(String.valueOf(System.currentTimeMillis()));
                 rtn = builder.build();
                 control.outBoundQueue.add(rtn);
                 responseObserver.onNext(rtn);
