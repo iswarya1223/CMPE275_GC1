@@ -45,7 +45,7 @@ def startHeartBeatProcess(serverlist):
     def heartbeat( threadName):
         while True:
             try: 
-                client= route_client.RouteClient(2000)
+                client= route_client.RouteClient(5000)
                 result1 = client.get_url1(id=serverlist[1],payload=bytes("HB", 'utf-8'))
             except:
                 print("unable to connect to load balancer")
